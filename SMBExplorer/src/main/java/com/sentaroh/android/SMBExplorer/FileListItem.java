@@ -1,5 +1,10 @@
 package com.sentaroh.android.SMBExplorer;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
 import android.util.Log;
@@ -7,7 +12,7 @@ import android.util.Log;
 import com.sentaroh.android.Utilities.MiscUtil;
 import com.sentaroh.android.Utilities.StringUtil;
 
-public class FileListItem implements Serializable, Comparable<FileListItem>{
+public class FileListItem implements Cloneable, Serializable, Comparable<FileListItem>{
 	private static final long serialVersionUID = 1L;
 	
 	private String fileName;
@@ -27,6 +32,8 @@ public class FileListItem implements Serializable, Comparable<FileListItem>{
 	private boolean triState=false;
 	private boolean enableItem=true;
 	private boolean hasExtendedAttr=false;
+
+
 
 	private String fileSize="0", fileLastModDate="", fileLastModTime="";
 	
@@ -108,16 +115,46 @@ public class FileListItem implements Serializable, Comparable<FileListItem>{
 
 	@Override
 	public int compareTo(FileListItem o) {
-	if(this.fileName != null) {
-		String cmp_c="F",cmp_n="F";
-		if (isDir) cmp_c="D";
-		if (o.isDir()) cmp_n="D";
-		cmp_c+=filePath;
-		cmp_n+=o.getPath();
-		if (!cmp_c.equals(cmp_n)) return cmp_c.compareToIgnoreCase(cmp_n);
-		return fileName.compareToIgnoreCase(o.getName());
-	} else 
-		throw new IllegalArgumentException();
+        if(this.fileName != null) {
+            String cmp_c="F",cmp_n="F";
+            if (isDir) cmp_c="D";
+            if (o.isDir()) cmp_n="D";
+            cmp_c+=filePath;
+            cmp_n+=o.getPath();
+            if (!cmp_c.equals(cmp_n)) return cmp_c.compareToIgnoreCase(cmp_n);
+            return fileName.compareToIgnoreCase(o.getName());
+        } else throw new IllegalArgumentException();
 	}
+
+    @Override
+    public FileListItem clone() {
+        FileListItem npfli = null;
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ObjectOutputStream oos = new ObjectOutputStream(baos);
+            oos.writeObject(this);
+
+            oos.flush();
+            oos.close();
+
+            baos.flush();
+            byte[] ba_buff = baos.toByteArray();
+            baos.close();
+
+            ByteArrayInputStream bais = new ByteArrayInputStream(ba_buff);
+            ObjectInputStream ois = new ObjectInputStream(bais);
+
+            npfli = (FileListItem) ois.readObject();
+            ois.close();
+            bais.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        return npfli;
+    }
+
 }
 

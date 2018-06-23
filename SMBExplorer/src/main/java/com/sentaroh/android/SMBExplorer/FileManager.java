@@ -1154,11 +1154,11 @@ public class FileManager {
     private void createFilelistContextMenu(View view, int idx, final FileListAdapter fla) {
         mGp.fileioLinkParm.clear();
         final FileListItem item=fla.getItem(idx);
-        ccMenu.addMenuItem("Property",R.drawable.menu_properties).setOnClickListener(new CustomContextMenuItem.CustomContextMenuOnClickListener() {
+        ccMenu.addMenuItem("Property("+item.getName()+")",R.drawable.menu_properties).setOnClickListener(new CustomContextMenuItem.CustomContextMenuOnClickListener() {
             @Override
             public void onClick(CharSequence menuTitle) {
                 showProperty(fla,"C", item.getName(), item.isDir(),idx);
-                setAllFilelistItemUnChecked(fla);
+//                setAllFilelistItemUnChecked(fla);
             }
         });
         if (mGp.currentTabName.equals(SMBEXPLORER_TAB_LOCAL) && !item.isDir()) {
@@ -1166,24 +1166,76 @@ public class FileManager {
                 @Override
                 public void onClick(CharSequence menuTitle) {
                     startLocalFileViewerIntent(item, "text/plain");
-                    setAllFilelistItemUnChecked(fla);
+//                    setAllFilelistItemUnChecked(fla);
                 }
             });
             ccMenu.addMenuItem("Open with Zip file").setOnClickListener(new CustomContextMenuItem.CustomContextMenuOnClickListener() {
                 @Override
                 public void onClick(CharSequence menuTitle) {
                     startLocalFileViewerIntent(item, "application/zip");
-                    setAllFilelistItemUnChecked(fla);
+//                    setAllFilelistItemUnChecked(fla);
                 }
             });
         }
-        ccMenu.addMenuItem("Select").setOnClickListener(new CustomContextMenuItem.CustomContextMenuOnClickListener() {
+        ccMenu.addMenuItem("Copy("+item.getName()+")",R.drawable.context_button_copy).setOnClickListener(new CustomContextMenuItem.CustomContextMenuOnClickListener() {
             @Override
             public void onClick(CharSequence menuTitle) {
-                item.setChecked(true);
-                fla.notifyDataSetChanged();
+                FileListAdapter tfla=new FileListAdapter(mContext);
+                ArrayList<FileListItem>dl=new ArrayList<FileListItem>();
+                FileListItem n_item=item.clone();
+                n_item.setChecked(true);
+                dl.add(n_item);
+                tfla.setDataList(dl);
+
+                setCopyFrom(tfla);
             }
         });
+        ccMenu.addMenuItem("Cut("+item.getName()+")",R.drawable.context_button_cut).setOnClickListener(new CustomContextMenuItem.CustomContextMenuOnClickListener() {
+            @Override
+            public void onClick(CharSequence menuTitle) {
+                FileListAdapter tfla=new FileListAdapter(mContext);
+                ArrayList<FileListItem>dl=new ArrayList<FileListItem>();
+                FileListItem n_item=item.clone();
+                n_item.setChecked(true);
+                dl.add(n_item);
+                tfla.setDataList(dl);
+
+                setCutFrom(tfla);
+            }
+        });
+        ccMenu.addMenuItem("Rename("+item.getName()+")",R.drawable.context_button_rename).setOnClickListener(new CustomContextMenuItem.CustomContextMenuOnClickListener() {
+            @Override
+            public void onClick(CharSequence menuTitle) {
+                FileListAdapter tfla=new FileListAdapter(mContext);
+                ArrayList<FileListItem>dl=new ArrayList<FileListItem>();
+                FileListItem n_item=item.clone();
+                n_item.setChecked(true);
+                dl.add(n_item);
+                tfla.setDataList(dl);
+
+                renameItem(tfla);
+            }
+        });
+        ccMenu.addMenuItem("Delete("+item.getName()+")",R.drawable.context_button_trash).setOnClickListener(new CustomContextMenuItem.CustomContextMenuOnClickListener() {
+            @Override
+            public void onClick(CharSequence menuTitle) {
+                FileListAdapter tfla=new FileListAdapter(mContext);
+                ArrayList<FileListItem>dl=new ArrayList<FileListItem>();
+                FileListItem n_item=item.clone();
+                n_item.setChecked(true);
+                dl.add(n_item);
+                tfla.setDataList(dl);
+
+                deleteItem(tfla);
+            }
+        });
+//        ccMenu.addMenuItem("Select").setOnClickListener(new CustomContextMenuItem.CustomContextMenuOnClickListener() {
+//            @Override
+//            public void onClick(CharSequence menuTitle) {
+//                item.setChecked(true);
+//                fla.notifyDataSetChanged();
+//            }
+//        });
         ccMenu.createMenu();
     };
 
