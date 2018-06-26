@@ -1,27 +1,26 @@
 package com.sentaroh.android.SMBExplorer;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-
 import android.content.Context;
 import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
+import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.TextView;
-import android.widget.CompoundButton.OnCheckedChangeListener;
 
-import com.sentaroh.android.Utilities.ThemeUtil;
 import com.sentaroh.android.Utilities.NotifyEvent;
 import com.sentaroh.android.Utilities.ThemeColorList;
+import com.sentaroh.android.Utilities.ThemeUtil;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 
 public class FileListAdapter extends BaseAdapter {
 	private Context mContext;
@@ -93,9 +92,10 @@ public class FileListAdapter extends BaseAdapter {
 		return result;
 	};
 	
-	public void setAllItemChecked(boolean selected) {
+	public void setAllItemChecked(boolean checked) {
 		for (int i=0;i<mDataItems.size();i++) 
-			mDataItems.get(i).setChecked(selected); 
+			mDataItems.get(i).setChecked(checked);
+		notifyDataSetChanged();
 	};
 	
 	public boolean isSingleSelectMode() {
@@ -108,11 +108,6 @@ public class FileListAdapter extends BaseAdapter {
 
 	public void removeItem(FileListItem fi) {
 		mDataItems.remove(fi);
-	};
-
-	public void replaceItem(int i, FileListItem fi) {
-		mDataItems.set(i,fi);
-		notifyDataSetChanged();
 	};
 
 	public void add(FileListItem fi) {
@@ -134,18 +129,22 @@ public class FileListAdapter extends BaseAdapter {
 	public void clear() {
 		mDataItems.clear();
 	};
-	
+
 	public void sort() {
-		Collections.sort(mDataItems, new Comparator<FileListItem>(){
-			@Override
-			public int compare(FileListItem l, FileListItem r) {
-				String l_d=l.isDir()?"0":"1"; 
-				String r_d=r.isDir()?"0":"1";
-				return (l_d+l.getName()).compareToIgnoreCase((r_d+r.getName()));
-			}
-		});
+	    sort(mDataItems);
 	};
-	
+
+	static public void sort(ArrayList<FileListItem>fl) {
+        Collections.sort(fl, new Comparator<FileListItem>(){
+            @Override
+            public int compare(FileListItem l, FileListItem r) {
+                String l_d=l.isDir()?"0":"1";
+                String r_d=r.isDir()?"0":"1";
+                return (l_d+l.getName()).compareToIgnoreCase((r_d+r.getName()));
+            }
+        });
+    }
+
 	public void setCbCheckListener(NotifyEvent ntfy) {
 		cb_ntfy=ntfy;
 	}
@@ -169,7 +168,6 @@ public class FileListAdapter extends BaseAdapter {
             View v = convertView;
             if (v == null) {
                 LayoutInflater vi = (LayoutInflater)mContext.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-//                v = vi.inflate(R.layout.file_list_item, null);
                 v = vi.inflate(R.layout.file_list_item, parent, false);
                 holder=new ViewHolder();
                 
@@ -180,6 +178,7 @@ public class FileListAdapter extends BaseAdapter {
             	holder.tv_size=(TextView)v.findViewById(R.id.file_list_size);
             	holder.tv_moddate=(TextView)v.findViewById(R.id.file_list_date);
             	holder.tv_modtime=(TextView)v.findViewById(R.id.file_list_time);
+                holder.tv_count=(TextView)v.findViewById(R.id.file_list_count);
             	holder.tv_select=(LinearLayout)v.findViewById(R.id.file_list_select_view);
             	
             	v.setTag(holder); 
@@ -188,7 +187,6 @@ public class FileListAdapter extends BaseAdapter {
             }
             v.setEnabled(true);
             final FileListItem o = mDataItems.get(position);
-//            Log.v("","data_items pos="+show_items.get(position)+", pos="+position);
             if (o != null) {
             	if (o.isEnableItem()) {
 	            	holder.cb_cb1.setEnabled(true);
@@ -217,21 +215,25 @@ public class FileListAdapter extends BaseAdapter {
             		holder.tv_name.setText(o.getName());
             	} else {
                 	holder.tv_name.setText(o.getName());
+                    holder.tv_size.setText(o.getFileSize());
                 	if (mShowLastModified) {
-                        holder.tv_size.setText(o.getFileSize());
                         holder.tv_moddate.setText(o.getFileLastModDate());
                         holder.tv_modtime.setText(o.getFileLastModTime());
                 	} else {
-    	            	holder.tv_size.setVisibility(TextView.GONE);
+//    	            	holder.tv_size.setVisibility(TextView.GONE);
     	            	holder.tv_moddate.setVisibility(TextView.GONE);
     	            	holder.tv_modtime.setVisibility(TextView.GONE);
                 	}
                    	if(o.isDir()) {
+                	    if (o.getPath().startsWith("smb://")) holder.tv_size.setVisibility(TextView.GONE);
                    		holder.iv_image1.setImageResource(mIconImage[2]); //folder
-                   		String ic=""+o.getSubDirItemCount()+" Item";
-                   		holder.tv_size.setText(ic);
+                   		String ic=String.format("%3d item",o.getSubDirItemCount());
+                   		holder.tv_count.setText(ic);
+                        holder.tv_count.setVisibility(TextView.VISIBLE);
                    	} else {
                    		holder.iv_image1.setImageResource(mIconImage[3]); //sheet
+                        holder.tv_size.setVisibility(TextView.VISIBLE);
+                        holder.tv_count.setVisibility(TextView.GONE);
                    	}
                    	if (o.isHidden() || o.hasExtendedAttr()) {
                    		if (o.hasExtendedAttr()) {
@@ -253,15 +255,6 @@ public class FileListAdapter extends BaseAdapter {
                    	}
             	}
                	final int p = position;
-             // 必ずsetChecked前にリスナを登録
-             //	(convertView != null の場合は既に別行用のリスナが登録されている！)
-//               	holder.tv_select.setOnClickListener(new OnClickListener(){
-//					@Override
-//					public void onClick(View v) {
-//						if (mSingleSelectMode) holder.rb_rb1.setChecked(true);
-//		           		else holder.cb_cb1.setChecked(!mDataItems.get(p).isChecked());
-//					}
-//               	});
            		holder.cb_cb1.setOnCheckedChangeListener(new OnCheckedChangeListener() {
 					public void onCheckedChanged(CompoundButton buttonView,
 							boolean isChecked) {
@@ -293,7 +286,6 @@ public class FileListAdapter extends BaseAdapter {
 							fi=mDataItems.get(i);
 							if (fi.isChecked()&&p!=i) {
 								fi.setChecked(false);
-//								replaceDataItem(i,fi);
 							}
 						}
 					}
@@ -307,7 +299,7 @@ public class FileListAdapter extends BaseAdapter {
     };
     
 	static class ViewHolder {
-		 TextView tv_name, tv_moddate, tv_modtime, tv_size;
+		 TextView tv_name, tv_moddate, tv_modtime, tv_size, tv_count;
 		 LinearLayout tv_select;
 		 ImageView iv_image1;
 		 CheckBox cb_cb1;

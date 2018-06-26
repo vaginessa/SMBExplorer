@@ -51,34 +51,18 @@ class SmbServerConfig implements Serializable, Cloneable, Comparable<SmbServerCo
 
     public SmbServerConfig(){}
 
-    public SmbServerConfig(String pft, String pfn, String pfa,
-                           String pf_user, String pf_pass, String pf_addr, String pf_port,
-                           String pf_share, boolean ic){
-		profileType = pft;
-		profileName = pfn;
-		profileActive=pfa;
-		profileUser = pf_user;
-		profilePass = pf_pass;
-		profileAddr = pf_addr;
-		profilePort = pf_port;
-		profileShare = pf_share;
-		profileIsChecked = ic;
-
-	}
-
-    public SmbServerConfig(String pft, String pfn, String pfa,
-                           String domain, String pf_user, String pf_pass, String pf_addr, String pf_port,
-                           String pf_share, boolean ic){
-        profileType = pft;
+    public SmbServerConfig(String pfn,
+                           String domain, String pf_user, String pf_pass, String pf_addr, String pf_port, String pf_share){
+        profileType = "R";
         profileName = pfn;
-        profileActive=pfa;
+        profileActive="A";
         profileDomain = domain;
         profileUser = pf_user;
         profilePass = pf_pass;
         profileAddr = pf_addr;
         profilePort = pf_port;
         profileShare = pf_share;
-        profileIsChecked = ic;
+        profileIsChecked = false;
 
     }
 

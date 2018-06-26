@@ -23,6 +23,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 */
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.BroadcastReceiver;
@@ -31,6 +32,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
@@ -61,6 +63,7 @@ import android.widget.TabWidget;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.sentaroh.android.SMBExplorer.Log.LogFileListDialogFragment;
 import com.sentaroh.android.Utilities.ContextMenu.CustomContextMenu;
 import com.sentaroh.android.Utilities.Dialog.CommonDialog;
 import com.sentaroh.android.Utilities.NotifyEvent;
@@ -69,19 +72,22 @@ import com.sentaroh.android.Utilities.ThemeUtil;
 import com.sentaroh.android.Utilities.Widget.CustomViewPager;
 import com.sentaroh.android.Utilities.Widget.CustomViewPagerAdapter;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import static com.sentaroh.android.SMBExplorer.Constants.*;
+import static com.sentaroh.android.SMBExplorer.Constants.SMBEXPLORER_PROFILE_NAME;
+import static com.sentaroh.android.SMBExplorer.Constants.SMBEXPLORER_TAB_LOCAL;
+import static com.sentaroh.android.SMBExplorer.Constants.SMBEXPLORER_TAB_POS_LOCAL;
+import static com.sentaroh.android.SMBExplorer.Constants.SMBEXPLORER_TAB_REMOTE;
 
 public class MainActivity extends AppCompatActivity {
 	private final static String DEBUG_TAG = "SMBExplorer";
@@ -144,12 +150,16 @@ public class MainActivity extends AppCompatActivity {
 		ContextCompat.getExternalFilesDirs(mContext, null);
         restartStatus=0;
 
+        checkRequiredPermissions();
+
         mUsbReceiver=new UsbReceiver();
         IntentFilter int_filter = new IntentFilter();
         int_filter = new IntentFilter();
         int_filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
         int_filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
         registerReceiver(mUsbReceiver, int_filter);
+
+        openService();
 
         mFileMgr.loadLocalFilelist(mGp.localBase,mGp.localDir, null);
         mFileMgr.setEmptyFolderView();
@@ -181,32 +191,23 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         } else {
-            NotifyEvent ntfy=new NotifyEvent(mContext);
-            ntfy.setListener(new NotifyEvent.NotifyEventListener() {
-                @Override
-                public void positiveResponse(Context context, Object[] objects) {
-                    if (restartStatus==0) {
-                        switchTab(SMBEXPLORER_TAB_LOCAL);
-                        mGp.smbConfigList = SmbServerUtil.createSmbServerConfigList(mGp,false,"");
-                        mFileMgr.setMainListener();
-                        refreshOptionMenu();
-                    }
-                    restartStatus=1;
-                }
-                @Override
-                public void negativeResponse(Context context, Object[] objects) {}
-            });
-            openService(ntfy);
+            if (restartStatus==0) {
+//                switchTab(SMBEXPLORER_TAB_LOCAL);
+                mGp.smbConfigList = SmbServerUtil.createSmbServerConfigList(mGp,false,"");
+                mFileMgr.setMainListener();
+                refreshOptionMenu();
+            }
+            restartStatus=1;
         }
 	}
 
-    private void openService(NotifyEvent p_ntfy) {
+    private void openService() {
         mUtil.addDebugMsg(1,"I",CommonUtilities.getExecutedMethodName()+" entered");
         mGp.svcConnection = new ServiceConnection(){
             public void onServiceConnected(ComponentName arg0, IBinder service) {
                 mUtil.addDebugMsg(1,"I",CommonUtilities.getExecutedMethodName()+" entered");
                 mGp.svcClient =ISvcClient.Stub.asInterface(service);
-                p_ntfy.notifyToListener(true, null);
+//                p_ntfy.notifyToListener(true, null);
             }
             public void onServiceDisconnected(ComponentName name) {
                 mGp.svcConnection = null;
@@ -492,7 +493,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
 	public boolean onCreateOptionsMenu(Menu menu) {
-		mUtil.addDebugMsg(1, "I","onCreateOptionsMenu entered");
+//		mUtil.addDebugMsg(1, "I","onCreateOptionsMenu entered");
 		MenuInflater inflater = getMenuInflater();
 		inflater.inflate(R.menu.menu_top, menu);
 		return true;
@@ -500,21 +501,93 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
-    	mUtil.addDebugMsg(1, "I","onPrepareOptionsMenu entered");
+//    	mUtil.addDebugMsg(1, "I","onPrepareOptionsMenu entered");
     	super.onPrepareOptionsMenu(menu);
+        File lf=new File(mGp.getLogDirName()+"/"+mGp.getLogFileName()+".txt");
+    	if (lf.exists()) menu.findItem(R.id.menu_top_view_log_file).setVisible(true);
+        else menu.findItem(R.id.menu_top_view_log_file).setVisible(false);
     	if (isUiEnabled()) {
     		menu.findItem(R.id.menu_top_export).setEnabled(true);
     		menu.findItem(R.id.menu_top_import).setEnabled(true);
     		menu.findItem(R.id.menu_top_settings).setEnabled(true);
+            menu.findItem(R.id.menu_top_edit_smb_server).setEnabled(true);
+            menu.findItem(R.id.menu_top_refresh).setEnabled(true);
     	} else {
     		menu.findItem(R.id.menu_top_export).setEnabled(false);
     		menu.findItem(R.id.menu_top_import).setEnabled(false);
     		menu.findItem(R.id.menu_top_settings).setEnabled(false);
+            menu.findItem(R.id.menu_top_edit_smb_server).setEnabled(false);
+            menu.findItem(R.id.menu_top_refresh).setEnabled(false);
     	}
         return true;
     }
-	
-	@Override
+
+    private final int REQUEST_PERMISSIONS_WRITE_EXTERNAL_STORAGE = 1;
+    private void checkRequiredPermissions() {
+        if (Build.VERSION.SDK_INT >= 23) {
+            mUtil.addDebugMsg(1, "I", "Prermission WriteExternalStorage=" + checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) +
+                    ", WakeLock=" + checkSelfPermission(Manifest.permission.WAKE_LOCK)
+            );
+            if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                NotifyEvent ntfy = new NotifyEvent(mContext);
+                ntfy.setListener(new NotifyEvent.NotifyEventListener() {
+                    @Override
+                    public void positiveResponse(Context c, Object[] o) {
+                        requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                                REQUEST_PERMISSIONS_WRITE_EXTERNAL_STORAGE);
+                    }
+
+                    @Override
+                    public void negativeResponse(Context c, Object[] o) {
+                        NotifyEvent ntfy_term = new NotifyEvent(mContext);
+                        ntfy_term.setListener(new NotifyEvent.NotifyEventListener() {
+                            @Override
+                            public void positiveResponse(Context c, Object[] o) {
+//                                isTaskTermination = true;
+                                finish();
+                            }
+
+                            @Override
+                            public void negativeResponse(Context c, Object[] o) {
+                            }
+                        });
+                        mGp.commonDlg.showCommonDialog(false, "W",
+                                mContext.getString(R.string.msgs_main_permission_external_storage_title),
+                                mContext.getString(R.string.msgs_main_permission_external_storage_denied_msg), ntfy_term);
+                    }
+                });
+                mGp.commonDlg.showCommonDialog(false, "W",
+                        mContext.getString(R.string.msgs_main_permission_external_storage_title),
+                        mContext.getString(R.string.msgs_main_permission_external_storage_request_msg), ntfy);
+            }
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        if (REQUEST_PERMISSIONS_WRITE_EXTERNAL_STORAGE == requestCode) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            } else {
+                NotifyEvent ntfy_term = new NotifyEvent(mContext);
+                ntfy_term.setListener(new NotifyEvent.NotifyEventListener() {
+                    @Override
+                    public void positiveResponse(Context c, Object[] o) {
+//                        isTaskTermination = true;
+                        finish();
+                    }
+
+                    @Override
+                    public void negativeResponse(Context c, Object[] o) {
+                    }
+                });
+                mGp.commonDlg.showCommonDialog(false, "W",
+                        mContext.getString(R.string.msgs_main_permission_external_storage_title),
+                        mContext.getString(R.string.msgs_main_permission_external_storage_denied_msg), ntfy_term);
+            }
+        }
+    }
+
+    @Override
 	public boolean onOptionsItemSelected(MenuItem item) {
 		mUtil.addDebugMsg(1, "I","onOptionsItemSelected entered");
 		switch (item.getItemId()) {
@@ -530,19 +603,55 @@ public class MainActivity extends AppCompatActivity {
 			case R.id.menu_top_settings:
 				invokeSettingsActivity();
 				return true;
-			case R.id.quit:
+			case R.id.menu_top_quit:
 				confirmTerminateApplication();
 				return true;
             case R.id.menu_top_edit_smb_server:
-                SmbServerList sm=new SmbServerList(mActivity, mGp);
+                SmbServerListEditor sm=new SmbServerListEditor(mActivity, mGp);
+                return true;
+            case R.id.menu_top_view_log_file:
+                mUtil.flushLog();
+                FileListItem fi=new FileListItem(mGp.getLogFileName()+".txt",false,0,0,false,mGp.getLogDirName());
+                mFileMgr.startLocalFileViewerIntent(fi,"text/plain");
                 return true;
             case R.id.menu_top_refresh:
 //                sendMagicPacket("08:bd:43:f6:48:2a", "255.255.255.255");
                 mFileMgr.refreshFileListView();
                 return true;
+            case R.id.menu_top_log_management:
+                invokeLogManagement();
+                return true;
+
 		}
 		return false;
 	}
+
+    private void invokeLogManagement() {
+        NotifyEvent ntfy=new NotifyEvent(mContext);
+        ntfy.setListener(new NotifyEvent.NotifyEventListener(){
+            @Override
+            public void positiveResponse(Context c, Object[] o) {
+                mGp.setSettingOptionLogEnabled(mContext, (Boolean)o[0]);
+                mUtil.resetLogReceiver();
+                if (!(Boolean)o[0]) mUtil.rotateLogFile();
+                Handler hndl=new Handler();
+                hndl.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        mFileMgr.refreshFileListView();
+                        refreshOptionMenu();
+                    }
+                });
+            }
+            @Override
+            public void negativeResponse(Context c, Object[] o) {
+            }
+        });
+        mUtil.flushLog();
+        LogFileListDialogFragment lfm=
+                LogFileListDialogFragment.newInstance(false, getString(R.string.msgs_log_management_title));
+        lfm.showDialog(getSupportFragmentManager(), lfm, mGp, ntfy);
+    };
 
     private void sendMagicPacket(final String target_mac, final String if_network) {
 //                sendMagicPacket("08:bd:43:f6:48:2a", "192.168.200.128");
@@ -582,7 +691,7 @@ public class MainActivity extends AppCompatActivity {
     public boolean onKeyDown(int keyCode, KeyEvent event) {
 		switch (keyCode) {
             case KeyEvent.KEYCODE_BACK:
-                switchToHome();
+                if (!mFileMgr.processBackKey()) switchToHome();
                 return true;
             default:
                 return super.onKeyDown(keyCode, event);
@@ -618,7 +727,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
 	private void applySettingParms() {
+        boolean p_log_enabled=mGp.settingLogOption;
 		mGp.loadSettingsParm(mContext);
+		if (p_log_enabled!=mGp.settingLogOption) {
+//		    if (mGp.settingLogOption) mUtil.resetLogReceiver();
+            mUtil.resetLogReceiver();
+        }
+		refreshOptionMenu();
 	}
 	
 	private boolean mUiEnabled=true;
@@ -667,6 +782,7 @@ public class MainActivity extends AppCompatActivity {
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 		if (requestCode == REQUEST_CODE_STORAGE_ACCESS) {
 	        if (resultCode == Activity.RESULT_OK) {
+                mUtil.addDebugMsg(1,"I","Storage picker action="+data.getAction());
 	            if (mGp.safMgr.isUsbUuid(SafManager.getUuidFromUri(data.getData().toString()))) {
                     if (mGp.safMgr.isRootTreeUri(data.getData())) {
                         mGp.safMgr.addUsbUuid(data.getData());
@@ -704,7 +820,7 @@ public class MainActivity extends AppCompatActivity {
                 }
 	        }
 	    } else if (requestCode == 0) {
-	    	if (resultCode == Activity.RESULT_OK) applySettingParms();
+	    	applySettingParms();
 	    }
 	}
 
@@ -831,11 +947,13 @@ public class MainActivity extends AppCompatActivity {
 //	            Method isRemovable = volume.getClass().getDeclaredMethod("isRemovable");
                 Method getUuid = volume.getClass().getDeclaredMethod("getUuid");
                 Method toString = volume.getClass().getDeclaredMethod("toString");
+                Method getId = volume.getClass().getDeclaredMethod("getId");
                 String path = (String) getPath.invoke(volume);
 //	            boolean removable = (Boolean)isRemovable.invoke(volume);
                 Method getLabel = volume.getClass().getDeclaredMethod("getUserLabel");
                 String label=(String) getLabel.invoke(volume)+"\n";
                 String aa=(String) toString.invoke(volume)+"\n";
+                mpi+="getId="+((String) getId.invoke(volume))+"\n";
                 mpi+=(String) toString.invoke(volume)+"\n";
 //	            if ((String)getUuid.invoke(volume)!=null) {
 //	            	paths.add(path);

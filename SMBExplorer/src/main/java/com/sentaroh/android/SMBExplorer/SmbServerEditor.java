@@ -24,7 +24,7 @@ import com.sentaroh.android.Utilities.Widget.CustomSpinnerAdapter;
 import java.util.ArrayList;
 import java.util.Collections;
 
-public class SmbServerConfigEditor {
+public class SmbServerEditor {
     private GlobalParameters mGp;
     private MainActivity mActivity;
     private Context mContext;
@@ -33,7 +33,7 @@ public class SmbServerConfigEditor {
     private Dialog mDialog;
     private String mOpCode;
 
-    public SmbServerConfigEditor(String op, MainActivity a, GlobalParameters gp, SmbServerConfig item, NotifyEvent ntfy) {
+    public SmbServerEditor(String op, MainActivity a, GlobalParameters gp, SmbServerConfig item, NotifyEvent ntfy) {
         mGp=gp;
         mActivity=a;
         mContext=gp.context;

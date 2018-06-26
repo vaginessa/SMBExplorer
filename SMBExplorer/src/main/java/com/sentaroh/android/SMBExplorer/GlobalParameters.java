@@ -46,7 +46,8 @@ import com.sentaroh.android.Utilities.Widget.CustomTextView;
 
 import java.util.ArrayList;
 
-import static com.sentaroh.android.SMBExplorer.Constants.*;
+import static com.sentaroh.android.SMBExplorer.Constants.APPLICATION_TAG;
+import static com.sentaroh.android.SMBExplorer.Constants.SMBEXPLORER_TAB_LOCAL;
 
 public class GlobalParameters extends CommonGlobalParms{
 	public Context context =null;
@@ -60,6 +61,11 @@ public class GlobalParameters extends CommonGlobalParms{
     public String remoteBase = "", localBase = "";
     public String remoteDir = "", localDir = "";
 
+    public static class LocalStorageConfig {
+        public String storage_name="";
+        public String storage_path="";
+    }
+    public ArrayList<LocalStorageConfig>localStorageConfig=new ArrayList<LocalStorageConfig>();
 //    public String smbUser=null, smbPass=null;
     public SmbServerConfig currentSmbServerConfig =null;
     public ThemeColorList themeColorList;
@@ -194,8 +200,15 @@ public class GlobalParameters extends CommonGlobalParms{
         settingLogMsgDir=prefs.getString(c.getString(R.string.settings_log_dir),internalRootDirectory+"/"+APPLICATION_TAG+"/");
         settingLogOption=prefs.getBoolean(c.getString(R.string.settings_log_option), false);
         settingPutLogcatOption=prefs.getBoolean(c.getString(R.string.settings_put_logcat_option), false);
+        setLogParms(this);
+    }
 
-    };
+    public void setSettingOptionLogEnabled(Context c, boolean enabled) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
+        prefs.edit().putBoolean(c.getString(R.string.settings_log_option), enabled).commit();
+        this.settingLogOption=enabled;
+        setLogParms(this);
+    }
 
     public void setLogParms(GlobalParameters gp) {
         setDebugLevel(gp.settingDebugLevel);

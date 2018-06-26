@@ -64,7 +64,9 @@ public class SmbServerUtil {
                 String[] alp;
                 while ((pl = br.readLine()) != null) {
                     alp = parseSmbServerConfigString(pl);
-                    SmbServerConfig sc=new SmbServerConfig(alp[0], alp[1], alp[2], alp[3], alp[4], alp[5], alp[6], alp[7],false);
+//                    public SmbServerConfig(String pfn,
+//                            String domain, String pf_user, String pf_pass, String pf_addr, String pf_port, String pf_share){
+                    SmbServerConfig sc=new SmbServerConfig(alp[1], "", alp[3], alp[4], alp[5], alp[6], alp[7]);
                     sc.setSmbLevel(alp[9]);
                     rem.add(sc);
                 }
@@ -82,10 +84,10 @@ public class SmbServerUtil {
             error=true;
         }
         if (error) {
-            rem.add(new SmbServerConfig("R", "HOME-D", "A", "Android", "", "192.168.200.128", "","D",false));
-            rem.add(new SmbServerConfig("R", "HOME-E", "A", "Android", "", "192.168.200.128", "","E",false));
-            rem.add(new SmbServerConfig("R", "HOME-F", "A", "Android", "", "192.168.200.128", "","F",false));
-            rem.add(new SmbServerConfig("R", "SRV-D",  "A", "Android", "", "192.168.200.10",  "","D",false));
+            rem.add(new SmbServerConfig("HOME-D","", "Android", "", "192.168.200.128", "","D"));
+            rem.add(new SmbServerConfig("HOME-E", "", "Android", "", "192.168.200.128", "","E"));
+            rem.add(new SmbServerConfig("HOME-F", "", "Android", "", "192.168.200.128", "","F"));
+            rem.add(new SmbServerConfig("SRV-D",  "", "Android", "", "192.168.200.10",  "","D"));
         }
         Collections.sort(rem);
 
@@ -290,6 +292,15 @@ public class SmbServerUtil {
         int a_no=0;
         for (int i = 0; i<gp.smbConfigList.size(); i++) {
             spAdapter.add(gp.smbConfigList.get(i).getName());
+        }
+    }
+
+    static public void replaceCurrentSmbServerConfig(GlobalParameters gp) {
+        for(SmbServerConfig item:gp.smbConfigList) {
+            if (item.getName().equals(gp.currentSmbServerConfig.getName())) {
+                gp.currentSmbServerConfig=item;
+                break;
+            }
         }
     }
 

@@ -23,17 +23,6 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 */
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.math.BigDecimal;
-import java.net.MalformedURLException;
-import java.util.ArrayList;
-
 import android.content.Context;
 import android.media.MediaScannerConnection;
 import android.media.MediaScannerConnection.MediaScannerConnectionClient;
@@ -56,7 +45,33 @@ import com.sentaroh.jcifs.JcifsAuth;
 import com.sentaroh.jcifs.JcifsException;
 import com.sentaroh.jcifs.JcifsFile;
 
-import static com.sentaroh.android.SMBExplorer.Constants.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.math.BigDecimal;
+import java.net.MalformedURLException;
+import java.util.ArrayList;
+
+import static com.sentaroh.android.SMBExplorer.Constants.APP_SPECIFIC_DIRECTORY;
+import static com.sentaroh.android.SMBExplorer.Constants.FILEIO_PARM_COPY_LOCAL_TO_LOCAL;
+import static com.sentaroh.android.SMBExplorer.Constants.FILEIO_PARM_COPY_LOCAL_TO_REMOTE;
+import static com.sentaroh.android.SMBExplorer.Constants.FILEIO_PARM_COPY_REMOTE_TO_LOCAL;
+import static com.sentaroh.android.SMBExplorer.Constants.FILEIO_PARM_COPY_REMOTE_TO_REMOTE;
+import static com.sentaroh.android.SMBExplorer.Constants.FILEIO_PARM_DOWLOAD_REMOTE_FILE;
+import static com.sentaroh.android.SMBExplorer.Constants.FILEIO_PARM_LOCAL_CREATE;
+import static com.sentaroh.android.SMBExplorer.Constants.FILEIO_PARM_LOCAL_DELETE;
+import static com.sentaroh.android.SMBExplorer.Constants.FILEIO_PARM_LOCAL_RENAME;
+import static com.sentaroh.android.SMBExplorer.Constants.FILEIO_PARM_MOVE_LOCAL_TO_LOCAL;
+import static com.sentaroh.android.SMBExplorer.Constants.FILEIO_PARM_MOVE_LOCAL_TO_REMOTE;
+import static com.sentaroh.android.SMBExplorer.Constants.FILEIO_PARM_MOVE_REMOTE_TO_LOCAL;
+import static com.sentaroh.android.SMBExplorer.Constants.FILEIO_PARM_MOVE_REMOTE_TO_REMOTE;
+import static com.sentaroh.android.SMBExplorer.Constants.FILEIO_PARM_REMOTE_CREATE;
+import static com.sentaroh.android.SMBExplorer.Constants.FILEIO_PARM_REMOTE_DELETE;
+import static com.sentaroh.android.SMBExplorer.Constants.FILEIO_PARM_REMOTE_RENAME;
 
 public class FileIo extends Thread {
 	private final static String DEBUG_TAG = "SMBExplorer";
@@ -448,7 +463,7 @@ public class FileIo extends Thread {
             result=deleteLocalFile(sf);
         }
     	return result;
-    };
+    }
 
     private boolean deleteSafFile(SafFile lf, String prefix) {
     	boolean result=false;
@@ -617,7 +632,6 @@ public class FileIo extends Thread {
         return result;
     }
     
-	@SuppressWarnings("unused")
 	private String makeRemoteTempFilePath(String  targetUrl) {
 		String tmp_wu="";
 		String last_sep="";
@@ -628,8 +642,6 @@ public class FileIo extends Thread {
 		String target_dir1=tmp_wu.substring(0,tmp_wu.lastIndexOf("/"));
 		String target_fn=tmp_wu.replace(target_dir1, "").substring(1);
 		String tmp_target=target_dir1+"/SMBExplorer.work.tmp"+last_sep;
-//		Log.v("","tmp="+tmp_target+", to="+targetUrl+", wu="+tmp_wu+", tdir1="+target_dir1+
-//				", tfn="+target_fn);
 		return tmp_target;
 	}
 
@@ -702,7 +714,7 @@ public class FileIo extends Thread {
 			return false;
 		}
 		return result;
-    };
+    }
 
     private boolean copyRemoteToLocal(JcifsAuth smb_auth, String fromUrl, String toUrl)  {
         JcifsFile hf,hfd;
@@ -752,7 +764,7 @@ public class FileIo extends Thread {
 			return false;
 		}
 		return result;
-    };
+    }
     
     private boolean copyLocalToRemote(JcifsAuth smb_auth, String fromUrl, String toUrl)  {
         JcifsFile ohf=null ;
@@ -828,7 +840,7 @@ public class FileIo extends Thread {
 			return false;
 		}
 		return result;
-    };
+    }
 
     private boolean moveLocalToLocal(String fromUrl, String toUrl)  {
         File iLf=null;
@@ -930,7 +942,7 @@ public class FileIo extends Thread {
 			else sendLogMsg("I","Move was failed. fromUrl="+ fromUrl+", toUrl="+toUrl);
 		}
 		return result;
-    };
+    }
 
     private boolean isSameMountPoint(String f_fp, String t_fp) {
     	boolean result=false;
@@ -939,7 +951,7 @@ public class FileIo extends Thread {
         else if (f_fp.startsWith(mGp.safMgr.getUsbRootPath()) && t_fp.startsWith(mGp.safMgr.getUsbRootPath())) result=true;
     	sendDebugLogMsg(1,"I","isSameMountPoint result="+result+", f_fp="+f_fp+", t_fp="+t_fp);
     	return result;
-    };
+    }
     
     private boolean moveRemoteToRemoteByRename(JcifsAuth smb_auth_from, JcifsAuth smb_auth_to, String fromUrl, String toUrl)  {
         JcifsFile ihf,hfd, ohf = null;
@@ -990,7 +1002,7 @@ public class FileIo extends Thread {
 			return false;
 		}
 		return result;
-    };
+    }
     
     private boolean downloadRemoteFile(JcifsAuth smb_auth, String fromUrl, String toUrl)  {
         JcifsFile hf,hfd;
@@ -1043,7 +1055,7 @@ public class FileIo extends Thread {
 			return false;
 		}
 		return result;
-    };
+    }
 
     private boolean copyFileLocalToLocal(File iLf, String fromUrl, String toUrl, String title_header)
             throws IOException, JcifsException {
@@ -1060,7 +1072,7 @@ public class FileIo extends Thread {
             result= copyFileLocalToInternal(iLf, fromUrl, toUrl, title_header);
         }
     	return result;
-    };
+    }
     
 	private boolean copyFileLocalToInternal(File iLf, String fromUrl, String toUrl, String title_header) throws IOException, JcifsException {
 	    long b_time=System.currentTimeMillis();
@@ -1208,9 +1220,9 @@ public class FileIo extends Thread {
         FileAttributes ifa= getInputFileAttribute(fromUrl);
 
         boolean copy_success=copyFile(ifa.is, bos, oLf, ifa.fileBytes, title_header, ifa.fileName, fromUrl, toUrl);
-        if (copy_success) {
-            scanMediaStoreLibraryFile(toUrl);
-        }
+//        if (copy_success) {
+//            scanMediaStoreLibraryFile(toUrl);
+//        }
         sendLogMsg("I",fromUrl+" was copied to "+toUrl+", "+ifa.fileBytes + " bytes transfered in " +
                 (System.currentTimeMillis()-b_time)+" mili seconds at " + calTransferRate(ifa.fileBytes,(System.currentTimeMillis()-b_time)));
 
@@ -1422,18 +1434,18 @@ public class FileIo extends Thread {
         mediaScanner.scanFile(fp, null);
 	};
 
-	private String isMediaFile(String fp) {
-		String mt=null;
-		String fid="";
-		if (fp.lastIndexOf(".")>0) {
-			fid=fp.substring(fp.lastIndexOf(".")+1,fp.length());
-			fid=fid.toLowerCase();
-		}
-		mt=MimeTypeMap.getSingleton().getMimeTypeFromExtension(fid);
-		if (mt==null) return "";
-		else return mt;
-	};
-	
+    private String isMediaFile(String fp) {
+        String mt=null;
+        String fid="";
+        if (fp.lastIndexOf(".")>0) {
+            fid=fp.substring(fp.lastIndexOf(".")+1,fp.length());
+            fid=fid.toLowerCase();
+        }
+        mt=MimeTypeMap.getSingleton().getMimeTypeFromExtension(fid);
+        if (mt==null) return "";
+        else return mt;
+    };
+
     private boolean isNoMediaPath(String path) {
         if (path == null) return false;
 
@@ -1459,9 +1471,8 @@ public class FileIo extends Thread {
     	boolean result=false;
     	if (f1_fl==f2_fl) {
     		long td=Math.abs(f1_lm-f2_lm);
-    		if (td>=3000) result=true;
+    		if (td>=3000) result=true;//Allowance time is 3Seconds
     	} else result=true;
-//    	Log.v("","result="+result+", f1_lm="+f1_lm+", f2_lm="+f2_lm);
     	return result;
     };
     
@@ -1481,7 +1492,6 @@ public class FileIo extends Thread {
 		}
 
 		JcifsFile hf = new JcifsFile(target_dir2 + "/",smb_auth);
-//		Log.v("","tdir="+target_dir2);
 		if (!hf.exists()) {
 			hf.mkdirs();
 		}

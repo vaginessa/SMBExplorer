@@ -39,10 +39,8 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
-import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ImageButton;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -53,7 +51,6 @@ import com.sentaroh.android.Utilities.NotifyEvent;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.List;
 
 import static android.view.KeyEvent.KEYCODE_BACK;
 
@@ -61,7 +58,7 @@ import static android.view.KeyEvent.KEYCODE_BACK;
  * Created by sentaroh on 2018/03/07.
  */
 
-public class SmbServerList {
+public class SmbServerListEditor {
     private CommonDialog commonDlg = null;
 
     private GlobalParameters mGp = null;
@@ -89,7 +86,7 @@ public class SmbServerList {
     private LinearLayout mContextButtonUnselectAllView = null;
 
 
-    public SmbServerList(MainActivity a, GlobalParameters gp) {
+    public SmbServerListEditor(MainActivity a, GlobalParameters gp) {
         mContext = gp.context;
         mActivity = a;
         mGp = gp;
@@ -176,7 +173,7 @@ public class SmbServerList {
                         public void negativeResponse(Context context, Object[] objects) {
                         }
                     });
-                    SmbServerConfigEditor sm = new SmbServerConfigEditor("EDIT", mActivity, mGp, ssi, ntfy);
+                    SmbServerEditor sm = new SmbServerEditor("EDIT", mActivity, mGp, ssi, ntfy);
                 }
             }
         });
@@ -204,6 +201,7 @@ public class SmbServerList {
                 mSmbServerListAdapter.sort();
                 SmbServerUtil.saveSmbServerConfigList(mGp);
                 SmbServerUtil.updateSmbShareSpinner(mGp);
+                SmbServerUtil.replaceCurrentSmbServerConfig(mGp);
                 mDialog.dismiss();
             }
         });
@@ -342,7 +340,7 @@ public class SmbServerList {
                     public void negativeResponse(Context context, Object[] objects) {
                     }
                 });
-                SmbServerConfigEditor sm = new SmbServerConfigEditor("ADD", mActivity, mGp, new SmbServerConfig(), ntfy);
+                SmbServerEditor sm = new SmbServerEditor("ADD", mActivity, mGp, new SmbServerConfig(), ntfy);
             }
         });
         ContextButtonUtil.setButtonLabelListener(mContext, mContextButtonAdd, "Add");
@@ -441,7 +439,7 @@ public class SmbServerList {
                     }
                 }
                 SmbServerConfig new_si = si.clone();
-                SmbServerConfigEditor sm = new SmbServerConfigEditor("COPY", mActivity, mGp, new_si, ntfy);
+                SmbServerEditor sm = new SmbServerEditor("COPY", mActivity, mGp, new_si, ntfy);
 
             }
         });
@@ -627,7 +625,7 @@ public class SmbServerList {
             }
             if (o != null) {
                 holder.tv_name.setText(o.getName());
-                holder.tv_info.setText(o.getAddr()+", "+o.getShare());
+                holder.tv_info.setText(o.getAddr()+", "+o.getShare()+", SMB="+o.getSmbLevel());
 
                 if (mSelectMode) {
                     holder.cbChecked.setVisibility(CheckBox.VISIBLE);
@@ -635,11 +633,9 @@ public class SmbServerList {
                     holder.cbChecked.setVisibility(CheckBox.INVISIBLE);
                 }
 
-                // 必ずsetChecked前にリスナを登録
                 holder.cbChecked.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-//                        holder.cbChecked.toggle();
                         boolean isChecked = holder.cbChecked.isChecked();
                         o.setChecked(isChecked);
                         if (mCbNotify != null)
@@ -658,65 +654,5 @@ public class SmbServerList {
         }
     }
 
-    public class SmbServerAdapter extends ArrayAdapter<SmbServerConfig> {
-
-        private Context c;
-        private int id;
-        private List<SmbServerConfig> items;
-
-        public SmbServerAdapter(Context context, int textViewResourceId,
-                                List<SmbServerConfig> objects) {
-            super(context, textViewResourceId, objects);
-            c = context;
-            id = textViewResourceId;
-            items = objects;
-        }
-        public SmbServerConfig getItem(int i) {
-            return items.get(i);
-        }
-
-        @SuppressWarnings("unused")
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-            View v = convertView;
-            ViewHolder holder = null;
-            if (v == null) {
-                LayoutInflater vi=(LayoutInflater)
-                        c.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-                v = vi.inflate(id, null);
-
-                holder=new ViewHolder();
-                holder.tv_name=(TextView) v.findViewById(R.id.profile_list_name);
-//                holder.tv_active=(TextView) v.findViewById(R.id.profile_list_active);
-                holder.iv_image1=(ImageView) v.findViewById(R.id.profile_list_image1);
-                holder.cb_cb1=(CheckBox) v.findViewById(R.id.profile_list_cb1);
-                v.setTag(holder);
-            } else {
-                holder= (ViewHolder)v.getTag();
-            }
-            final SmbServerConfig o = items.get(position);
-
-            if (o != null) {
-                holder.tv_name.setText(o.getName());
-            }
-            final int p = position;
-            // 必ずsetChecked前にリスナを登録(convertView != null の場合は既に別行用のリスナが登録されている！)
-            holder.cb_cb1.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-                @Override
-                public void onCheckedChanged(CompoundButton buttonView,
-                                             boolean isChecked) {
-                    o.setChecked(isChecked);
-                }
-            });
-            holder.cb_cb1.setChecked(items.get(position).isChecked());
-
-            return v;
-        }
-        private class ViewHolder {
-            TextView tv_name, tv_active;
-            ImageView iv_image1;
-            CheckBox cb_cb1;
-        }
-    }
 
 }

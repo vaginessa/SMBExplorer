@@ -7,10 +7,10 @@ android {
     defaultConfig {
         applicationId "com.sentaroh.android.SMBExplorer"
         minSdkVersion 21
-        targetSdkVersion 22
+        targetSdkVersion 26
 
         versionCode 1
-        versionName "0.96"
+        versionName "1.01"
 
     }
 

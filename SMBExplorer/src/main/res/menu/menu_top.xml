@@ -4,18 +4,27 @@
         android:title="Refresh"
         android:icon="@drawable/ic_32_refresh"
         appv7:showAsAction="always"/>
-    <item android:id="@+id/quit"
+    <item android:id="@+id/menu_top_quit"
         android:title="Quit"
         android:icon="@drawable/ic_32_close_gray"
         appv7:showAsAction="always"/>
-    <item android:id="@+id/menu_top_edit_smb_server"
-        android:title="Edit SMB server"
-        android:icon="@drawable/ic_32_server"
+    <item android:id="@+id/menu_top_view_log_file"
+        android:title="View log file"
+        android:icon="@drawable/ic_32_bw_browse_text"
         appv7:showAsAction="always"/>
+    <item
+        android:id="@+id/menu_top_edit_smb_server"
+        android:icon="@drawable/ic_32_server"
+        android:title="Edit SMB server"
+         />
 	<item android:id="@+id/menu_top_settings"
           android:title="Settings"
           android:icon="@android:drawable/ic_menu_preferences"
           />
+    <item android:id="@+id/menu_top_log_management"
+        android:title="Manage log files..."
+        />
+
     <item android:id="@+id/menu_top_export"
           android:title="Export profile" 
           />

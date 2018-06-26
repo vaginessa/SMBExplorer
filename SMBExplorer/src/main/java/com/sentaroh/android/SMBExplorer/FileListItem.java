@@ -1,16 +1,16 @@
 package com.sentaroh.android.SMBExplorer;
 
+import android.util.Log;
+
+import com.sentaroh.android.Utilities.MiscUtil;
+import com.sentaroh.android.Utilities.StringUtil;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
-
-import android.util.Log;
-
-import com.sentaroh.android.Utilities.MiscUtil;
-import com.sentaroh.android.Utilities.StringUtil;
 
 public class FileListItem implements Cloneable, Serializable, Comparable<FileListItem>{
 	private static final long serialVersionUID = 1L;
@@ -53,28 +53,47 @@ public class FileListItem implements Cloneable, Serializable, Comparable<FileLis
 		fileName = fn;
 	}
 	
-	public FileListItem(String fn,
-		boolean d, long fl,long lm, boolean ic, 
-		boolean cr,boolean cw,boolean hd, String fp, int lvl){
-		fileName = fn;
-		fileLength = fl;
-		isDir=d;
-		lastModdate=lm;
-		isChecked =ic;
-		canRead=cr;
-		canWrite=cw;
-		isHidden=hd;
-		filePath=fp;
+	public FileListItem(String file_name, boolean directory, long file_size, long last_modified, boolean checked,
+		                boolean can_read,boolean can_write,boolean hidden, String parent_path, int lvl){
+		fileName = file_name;
+		fileLength = file_size;
+		isDir=directory;
+		lastModdate=last_modified;
+		isChecked =checked;
+		canRead=can_read;
+		canWrite=can_write;
+		isHidden=hidden;
+		filePath=parent_path;
 		listLevel=lvl;
-		if (!isDir) {
-            fileSize=MiscUtil.convertFileSize(fileLength);
-            String[] dt=StringUtil.convDateTimeTo_YearMonthDayHourMinSec(lastModdate).split(" ");
-            fileLastModDate=dt[0];
-            fileLastModTime=dt[1];
-        }
+        fileSize=MiscUtil.convertFileSize(fileLength);
+        String[] dt=StringUtil.convDateTimeTo_YearMonthDayHourMinSec(lastModdate).split(" ");
+        fileLastModDate=dt[0];
+        fileLastModTime=dt[1];
 	}
-	public String getName(){return fileName;}
+
+    public FileListItem(String file_name, boolean directory, long file_size, long last_modified, boolean checked,
+                        String parent_path){
+        fileName = file_name;
+        fileLength = file_size;
+        isDir=directory;
+        lastModdate=last_modified;
+        isChecked =checked;
+        canRead=true;
+        canWrite=true;
+        isHidden=false;
+        filePath=parent_path;
+        listLevel=0;
+        fileSize=MiscUtil.convertFileSize(fileLength);
+        String[] dt=StringUtil.convDateTimeTo_YearMonthDayHourMinSec(lastModdate).split(" ");
+        fileLastModDate=dt[0];
+        fileLastModTime=dt[1];
+    }
+    public String getName(){return fileName;}
 	public long getLength(){return fileLength;}
+    public void setLength(long length){
+        fileLength=length;
+        fileSize=MiscUtil.convertFileSize(fileLength);
+	}
 
 	public String getFileSize() {return fileSize;}
     public String getFileLastModDate() {return fileLastModDate;}

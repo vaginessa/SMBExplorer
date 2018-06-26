@@ -13,13 +13,12 @@
         style="@android:style/Widget.Spinner"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
         android:background="@drawable/spinner_color_background"
         android:gravity="left"
-        android:layout_marginTop="2dp"
         android:minHeight="40dp"
         android:paddingLeft="5dp"
-        android:spinnerMode="dialog"
-        android:textAppearance="?android:attr/textAppearanceMedium" />
+        android:textAppearance="?android:attr/textAppearanceLarge" />
 
     <include layout="@layout/divider_line1" />
 
@@ -131,12 +130,13 @@
                 android:gravity="center"
                 android:text="Folder is empty"
                 android:textAppearance="?android:attr/textAppearanceLarge" />
-	        
+
 	        <ListView
 	            android:id="@+id/explorer_filelist_local_tab_listview"
 	            android:layout_width="fill_parent"
 	            android:layout_height="0dp"
 	            android:layout_weight="1"
+                android:layout_marginLeft="5dp"
 	            android:fadeScrollbars="false" />
             
         </LinearLayout>
