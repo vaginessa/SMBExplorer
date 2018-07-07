@@ -296,6 +296,7 @@ public class SmbServerUtil {
     }
 
     static public void replaceCurrentSmbServerConfig(GlobalParameters gp) {
+        if (gp.currentSmbServerConfig==null) return;
         for(SmbServerConfig item:gp.smbConfigList) {
             if (item.getName().equals(gp.currentSmbServerConfig.getName())) {
                 gp.currentSmbServerConfig=item;

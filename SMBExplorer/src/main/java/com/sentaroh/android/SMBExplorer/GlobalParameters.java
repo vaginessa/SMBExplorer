@@ -44,6 +44,9 @@ import com.sentaroh.android.Utilities.SafManager;
 import com.sentaroh.android.Utilities.ThemeColorList;
 import com.sentaroh.android.Utilities.Widget.CustomTextView;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 
 import static com.sentaroh.android.SMBExplorer.Constants.APPLICATION_TAG;
@@ -178,7 +181,9 @@ public class GlobalParameters extends CommonGlobalParms{
     public boolean activityIsBackground=false;
 
     public GlobalParameters() {};
-	
+
+    private static Logger log = LoggerFactory.getLogger(GlobalParameters.class);
+
 	public void  initGlobalParameter(Context c) {
         context =c;
 

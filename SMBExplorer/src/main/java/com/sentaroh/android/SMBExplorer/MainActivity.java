@@ -69,11 +69,16 @@ import com.sentaroh.android.Utilities.Dialog.CommonDialog;
 import com.sentaroh.android.Utilities.NotifyEvent;
 import com.sentaroh.android.Utilities.SafManager;
 import com.sentaroh.android.Utilities.ThemeUtil;
+import com.sentaroh.android.Utilities.ThreadCtrl;
 import com.sentaroh.android.Utilities.Widget.CustomViewPager;
 import com.sentaroh.android.Utilities.Widget.CustomViewPagerAdapter;
 
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.DatagramPacket;
@@ -163,6 +168,51 @@ public class MainActivity extends AppCompatActivity {
 
         mFileMgr.loadLocalFilelist(mGp.localBase,mGp.localDir, null);
         mFileMgr.setEmptyFolderView();
+
+        startLogCat("/storage/emulated/0","logcat.txt", mTcLogCat);
+    }
+    private ThreadCtrl mTcLogCat=new ThreadCtrl();
+
+    private void startLogCat(final String log_cat_dir, final String log_cat_file, final ThreadCtrl tc) {
+        Thread th=new Thread() {
+            @Override
+            public void run() {
+                Process process = null;
+                BufferedReader reader = null;
+                BufferedOutputStream bos=null;
+                try {
+                    File log_dir=new File(log_cat_dir);
+                    if (!log_dir.exists()) log_dir.mkdirs();
+                    File log_out=new File(log_cat_dir+"/"+log_cat_file);
+                    bos=new BufferedOutputStream(new FileOutputStream(log_out), 1024*1024*2);
+                    // Logcat 出力コマンド
+                    // String command = "logcat";
+                    String[] command = { "logcat", "-v", "time", "*:V" };
+
+                    // Logcat を出力する
+                    process = Runtime.getRuntime().exec(command);
+                    reader = new BufferedReader(new InputStreamReader(process.getInputStream()), 1024*64);
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        if (!tc.isEnabled()) break;
+                        bos.write((line+"\n").getBytes());
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } finally {
+                    if (reader != null) {
+                        try {
+                            bos.flush();
+                            bos.close();
+                            reader.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+        };
+        th.start();
     }
 
 	@Override
@@ -718,6 +768,7 @@ public class MainActivity extends AppCompatActivity {
 		in.addCategory(Intent.CATEGORY_HOME);
 		in.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 		startActivity(in);
+        mTcLogCat.setDisabled();//close logcat
 	}
 	
 	private void terminateApplication() {

@@ -215,7 +215,8 @@ public class FileListAdapter extends BaseAdapter {
             		holder.tv_name.setText(o.getName());
             	} else {
                 	holder.tv_name.setText(o.getName());
-                    holder.tv_size.setText(o.getFileSize());
+                	if (o.getLength()==-1) holder.tv_size.setText("Calculating");
+                	else holder.tv_size.setText(o.getFileSize());
                 	if (mShowLastModified) {
                         holder.tv_moddate.setText(o.getFileLastModDate());
                         holder.tv_modtime.setText(o.getFileLastModTime());

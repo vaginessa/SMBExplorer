@@ -2817,13 +2817,11 @@ public class FileManager {
         return fi;
     }
 
-    static public FileListItem createNewFilelistItem(String base_url, File tfli, int sdc, int ll) {
-        FileListItem fi=null;
+    public FileListItem createNewFilelistItem(String base_url, final File tfli, int sdc, int ll) {
         if (tfli.isDirectory()) {
-            long dir_size=getAllFileSizeInDirectory(tfli, true);
-            fi= new FileListItem(tfli.getName(),
+            final FileListItem fi= new FileListItem(tfli.getName(),
                     true,
-                    dir_size,
+                    -1,
                     tfli.lastModified(),
                     false,
                     tfli.canRead(),tfli.canWrite(),
@@ -2831,8 +2829,24 @@ public class FileManager {
                     ll);
             fi.setSubDirItemCount(sdc);
             fi.setBaseUrl(base_url);
+            final Handler hndl=new Handler();
+            Thread th=new Thread(){
+                @Override
+                public void run() {
+                    long dir_size=getAllFileSizeInDirectory(tfli, true);
+                    fi.setLength(dir_size);
+                    hndl.post(new Runnable(){
+                       @Override
+                       public void run(){
+                           mGp.localFileListAdapter.notifyDataSetChanged();
+                       }
+                    }) ;
+                }
+            };
+            th.start();
+            return fi;
         } else {
-            fi=new FileListItem(tfli.getName(),
+            final FileListItem fi=new FileListItem(tfli.getName(),
                     false,
                     tfli.length(),
                     tfli.lastModified(),
@@ -2841,8 +2855,8 @@ public class FileManager {
                     tfli.isHidden(),tfli.getParent(),
                     ll);
             fi.setBaseUrl(base_url);
+            return fi;
         }
-        return fi;
     }
 
     static public FileListItem createNewFilelistItem(String base_url, JcifsFile tfli, int sdc, int ll) throws JcifsException {
