@@ -40,7 +40,6 @@ import android.widget.TextView;
 
 import com.sentaroh.android.Utilities.CommonGlobalParms;
 import com.sentaroh.android.Utilities.Dialog.CommonDialog;
-import com.sentaroh.android.Utilities.SafManager;
 import com.sentaroh.android.Utilities.ThemeColorList;
 import com.sentaroh.android.Utilities.Widget.CustomTextView;
 
@@ -63,6 +62,9 @@ public class GlobalParameters extends CommonGlobalParms{
 
     public String remoteBase = "", localBase = "";
     public String remoteDir = "", localDir = "";
+
+    public boolean wifiIsActive=false;
+    public String wifiSsid="";
 
     public static class LocalStorageConfig {
         public String storage_name="";

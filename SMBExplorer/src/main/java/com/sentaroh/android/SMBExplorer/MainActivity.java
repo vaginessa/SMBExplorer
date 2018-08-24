@@ -67,18 +67,12 @@ import com.sentaroh.android.SMBExplorer.Log.LogFileListDialogFragment;
 import com.sentaroh.android.Utilities.ContextMenu.CustomContextMenu;
 import com.sentaroh.android.Utilities.Dialog.CommonDialog;
 import com.sentaroh.android.Utilities.NotifyEvent;
-import com.sentaroh.android.Utilities.SafManager;
 import com.sentaroh.android.Utilities.ThemeUtil;
-import com.sentaroh.android.Utilities.ThreadCtrl;
 import com.sentaroh.android.Utilities.Widget.CustomViewPager;
 import com.sentaroh.android.Utilities.Widget.CustomViewPagerAdapter;
 
-import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.DatagramPacket;
@@ -110,6 +104,8 @@ public class MainActivity extends AppCompatActivity {
     private CustomViewPager mMainViewPager=null;
     private CustomViewPagerAdapter mMainViewPagerAdapter=null;
 
+    private Handler mUiHandler=null;
+
     private FileManager mFileMgr=null;
 
 //    @Override
@@ -136,7 +132,7 @@ public class MainActivity extends AppCompatActivity {
 
         mUtil=mGp.mUtil=new CommonUtilities(mContext, "Main", mGp);
 		setContentView(R.layout.main);
-
+        mUiHandler=new Handler();
 		mActionBar = getSupportActionBar();
 		mActionBar.setHomeButtonEnabled(false);
 		mGp.localBase=mGp.internalRootDirectory;
@@ -164,55 +160,14 @@ public class MainActivity extends AppCompatActivity {
         int_filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
         registerReceiver(mUsbReceiver, int_filter);
 
-        openService();
-
         mFileMgr.loadLocalFilelist(mGp.localBase,mGp.localDir, null);
         mFileMgr.setEmptyFolderView();
 
-        startLogCat("/storage/emulated/0","logcat.txt", mTcLogCat);
-    }
-    private ThreadCtrl mTcLogCat=new ThreadCtrl();
+//        startLogCat("/storage/emulated/0","logcat.txt", mTcLogCat);
 
-    private void startLogCat(final String log_cat_dir, final String log_cat_file, final ThreadCtrl tc) {
-        Thread th=new Thread() {
-            @Override
-            public void run() {
-                Process process = null;
-                BufferedReader reader = null;
-                BufferedOutputStream bos=null;
-                try {
-                    File log_dir=new File(log_cat_dir);
-                    if (!log_dir.exists()) log_dir.mkdirs();
-                    File log_out=new File(log_cat_dir+"/"+log_cat_file);
-                    bos=new BufferedOutputStream(new FileOutputStream(log_out), 1024*1024*2);
-                    // Logcat 出力コマンド
-                    // String command = "logcat";
-                    String[] command = { "logcat", "-v", "time", "*:V" };
-
-                    // Logcat を出力する
-                    process = Runtime.getRuntime().exec(command);
-                    reader = new BufferedReader(new InputStreamReader(process.getInputStream()), 1024*64);
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        if (!tc.isEnabled()) break;
-                        bos.write((line+"\n").getBytes());
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } finally {
-                    if (reader != null) {
-                        try {
-                            bos.flush();
-                            bos.close();
-                            reader.close();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
-            }
-        };
-        th.start();
+//        long target=1534738805000L, master=1534738463738L;
+//        Log.v("","taget="+ StringUtil.convDateTimeTo_YearMonthDayHourMinSecMili(target));
+//        Log.v("","master="+ StringUtil.convDateTimeTo_YearMonthDayHourMinSecMili(master));
     }
 
 	@Override
@@ -241,23 +196,34 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         } else {
-            if (restartStatus==0) {
+            NotifyEvent ntfy=new NotifyEvent(mContext);
+            ntfy.setListener(new NotifyEvent.NotifyEventListener() {
+                @Override
+                public void positiveResponse(Context context, Object[] objects) {
+                    setCallbackListener();
+                    if (restartStatus==0) {
 //                switchTab(SMBEXPLORER_TAB_LOCAL);
-                mGp.smbConfigList = SmbServerUtil.createSmbServerConfigList(mGp,false,"");
-                mFileMgr.setMainListener();
-                refreshOptionMenu();
-            }
-            restartStatus=1;
+                        mGp.smbConfigList = SmbServerUtil.createSmbServerConfigList(mGp,false,"");
+                        mFileMgr.setMainListener();
+                        refreshOptionMenu();
+                    }
+                    restartStatus=1;
+                }
+                @Override
+                public void negativeResponse(Context context, Object[] objects) {
+                }
+            });
+            openService(ntfy);
         }
 	}
 
-    private void openService() {
+    private void openService(NotifyEvent p_ntfy) {
         mUtil.addDebugMsg(1,"I",CommonUtilities.getExecutedMethodName()+" entered");
         mGp.svcConnection = new ServiceConnection(){
             public void onServiceConnected(ComponentName arg0, IBinder service) {
                 mUtil.addDebugMsg(1,"I",CommonUtilities.getExecutedMethodName()+" entered");
                 mGp.svcClient =ISvcClient.Stub.asInterface(service);
-//                p_ntfy.notifyToListener(true, null);
+                p_ntfy.notifyToListener(true, null);
             }
             public void onServiceDisconnected(ComponentName name) {
                 mGp.svcConnection = null;
@@ -271,7 +237,42 @@ public class MainActivity extends AppCompatActivity {
         bindService(intmsg, mGp.svcConnection, BIND_AUTO_CREATE);
     }
 
-	@Override
+    final private void setCallbackListener() {
+        mUtil.addDebugMsg(1, "I", CommonUtilities.getExecutedMethodName() + " entered");
+        try {
+            mGp.svcClient.setCallBack(mSvcCallbackStub);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+            mUtil.addDebugMsg(1, "E", "setCallbackListener error :" + e.toString());
+        }
+    }
+
+    final private void unsetCallbackListener() {
+        mUtil.addDebugMsg(1, "I", CommonUtilities.getExecutedMethodName() + " entered");
+        if (mGp.svcClient != null) {
+            try {
+                mGp.svcClient.removeCallBack(mSvcCallbackStub);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+                mUtil.addDebugMsg(1, "E", "unsetCallbackListener error :" + e.toString());
+            }
+        }
+    }
+
+    private ISvcCallback mSvcCallbackStub = new ISvcCallback.Stub() {
+        @Override
+        public void cbWifiStatusChanged() throws RemoteException {
+            mUtil.addDebugMsg(1, "I","cbWifiStatusChanged entered");
+            mUiHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    FileManager.setRemoteTabEnabled(mGp);
+                }
+            });
+        }
+    };
+
+    @Override
 	protected void onPause() {
 		super.onPause();
 		mUtil.addDebugMsg(1, "I","onPause entered, enableKill="+mIsApplicationTerminate+
@@ -292,6 +293,7 @@ public class MainActivity extends AppCompatActivity {
 				", getChangingConfigurations="+String.format("0x%08x", getChangingConfigurations()));
         if (!isUiEnabled()) stopService();
         closeService();
+        unsetCallbackListener();
         unregisterReceiver(mUsbReceiver);
 	}
 
@@ -768,7 +770,6 @@ public class MainActivity extends AppCompatActivity {
 		in.addCategory(Intent.CATEGORY_HOME);
 		in.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 		startActivity(in);
-        mTcLogCat.setDisabled();//close logcat
 	}
 	
 	private void terminateApplication() {
@@ -949,6 +950,14 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void run() {
                     if (action.equals(UsbManager.ACTION_USB_DEVICE_ATTACHED)) {
+//                        UsbManager um=(UsbManager)mContext.getSystemService(UsbManager.class);
+//                        HashMap<String, UsbDevice> dl=um.getDeviceList();
+//                        String kl="";
+//                        for(String name : dl.keySet()){
+//                            kl += name + "\n";
+//                            Log.v("","key="+name+", v="+dl.get(name));
+//                        }
+//                        Log.v("","kl="+kl);
                         UsbDevice device = (UsbDevice) in.getParcelableExtra(UsbManager.EXTRA_DEVICE);
                         mUtil.addDebugMsg(1,"I",device.toString());
                         boolean success=false;

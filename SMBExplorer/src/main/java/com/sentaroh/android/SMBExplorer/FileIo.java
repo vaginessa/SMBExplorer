@@ -39,7 +39,6 @@ import android.util.Log;
 import android.webkit.MimeTypeMap;
 
 import com.sentaroh.android.Utilities.NotifyEvent;
-import com.sentaroh.android.Utilities.SafFile;
 import com.sentaroh.android.Utilities.ThreadCtrl;
 import com.sentaroh.jcifs.JcifsAuth;
 import com.sentaroh.jcifs.JcifsException;

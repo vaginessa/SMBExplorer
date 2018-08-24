@@ -33,7 +33,6 @@ import com.sentaroh.android.Utilities.ContextMenu.CustomContextMenuItem;
 import com.sentaroh.android.Utilities.Dialog.CommonDialog;
 import com.sentaroh.android.Utilities.LocalMountPoint;
 import com.sentaroh.android.Utilities.NotifyEvent;
-import com.sentaroh.android.Utilities.SafFile;
 import com.sentaroh.android.Utilities.ThreadCtrl;
 import com.sentaroh.android.Utilities.Widget.CustomSpinnerAdapter;
 import com.sentaroh.android.Utilities.Widget.CustomTextView;
@@ -75,6 +74,7 @@ public class FileManager {
     private CommonUtilities mUtil=null;
     private CustomContextMenu ccMenu = null;
     private boolean mSpinnerSelectionEnabled =true;
+    private Handler mUiHandler=null;
 
     public FileManager(MainActivity a, GlobalParameters gp, CommonUtilities mu, CustomContextMenu cc) {
         mActivity=a;
@@ -82,6 +82,7 @@ public class FileManager {
         mContext=gp.context;
         mUtil=mu;
         ccMenu=cc;
+        mUiHandler=new Handler();
     }
 
     public void setSpinnerSelectionEnabled(boolean enabled) {
@@ -720,6 +721,25 @@ public class FileManager {
         }
     }
 
+    static public void setRemoteTabEnabled(GlobalParameters mGp) {
+        if (mGp.wifiSsid.equals("")) {
+            mGp.remoteFileListDirSpinner.setEnabled(false);
+            mGp.remoteFileListView.setEnabled(false);
+            mGp.remoteFileListTopBtn.setEnabled(false);
+            mGp.remoteFileListUpBtn.setEnabled(false);
+        } else {
+            mGp.remoteFileListDirSpinner.setEnabled(true);
+            mGp.remoteFileListView.setEnabled(true);
+            if (mGp.remoteDir.equals("")) {
+                mGp.remoteFileListTopBtn.setEnabled(false);
+                mGp.remoteFileListUpBtn.setEnabled(false);
+            } else {
+                mGp.remoteFileListTopBtn.setEnabled(true);
+                mGp.remoteFileListUpBtn.setEnabled(true);
+            }
+        }
+    }
+
     public void setRemoteDirBtnListener() {
         final CustomSpinnerAdapter spAdapter = new CustomSpinnerAdapter(mActivity, android.R.layout.simple_spinner_item);
         spAdapter.setDropDownViewResource(android.R.layout.select_dialog_singlechoice);
@@ -734,7 +754,7 @@ public class FileManager {
                 mGp.remoteFileListDirSpinner.setSelection(a_no);
             a_no++;
         }
-
+        setRemoteTabEnabled(mGp);
         mGp.remoteFileListDirSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
@@ -1214,18 +1234,38 @@ public class FileManager {
             }
         }
         if (mGp.currentTabName.equals(SMBEXPLORER_TAB_LOCAL) && !item.isDir()) {
-            ccMenu.addMenuItem("Open with Text file").setOnClickListener(new CustomContextMenuItem.CustomContextMenuOnClickListener() {
+            ccMenu.addMenuItem("Open with Text file("+item.getName()+")").setOnClickListener(new CustomContextMenuItem.CustomContextMenuOnClickListener() {
                 @Override
                 public void onClick(CharSequence menuTitle) {
                     startLocalFileViewerIntent(item, "text/plain");
 //                    setAllFilelistItemUnChecked(fla);
                 }
             });
-            ccMenu.addMenuItem("Open with Zip file").setOnClickListener(new CustomContextMenuItem.CustomContextMenuOnClickListener() {
+            ccMenu.addMenuItem("Open with Zip file("+item.getName()+")").setOnClickListener(new CustomContextMenuItem.CustomContextMenuOnClickListener() {
                 @Override
                 public void onClick(CharSequence menuTitle) {
                     startLocalFileViewerIntent(item, "application/zip");
 //                    setAllFilelistItemUnChecked(fla);
+                }
+            });
+            ccMenu.addMenuItem("Share("+item.getName()+")",R.drawable.context_button_share_dark).setOnClickListener(new CustomContextMenuItem.CustomContextMenuOnClickListener() {
+                @Override
+                public void onClick(CharSequence menuTitle) {
+                    Intent intent = new Intent(android.content.Intent.ACTION_SEND);
+                    File lf=new File(item.getPath()+"/"+item.getName());
+                    Uri uri =null;
+//                    if (Build.VERSION.SDK_INT>=26)  uri= FileProvider.getUriForFile(mContext, BuildConfig.APPLICATION_ID + ".provider", lf);
+//                    else uri=Uri.parse("file://"+lf.getPath());
+                    uri=Uri.parse("file://"+lf.getPath());
+                    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    intent.putExtra(Intent.EXTRA_STREAM, uri);
+                    intent.setType("image/*");
+                    try {
+                        mContext.startActivity(intent);
+                    } catch(Exception e) {
+                        mGp.commonDlg.showCommonDialog(false, "E", "startActivity() failed at shareItem() for songle item. message="+e.getMessage(), "", null);
+                    }
                 }
             });
         }
@@ -2407,11 +2447,13 @@ public class FileManager {
         return dir_size;
     }
 
-    final static public long getAllFileSizeInDirectory(SafFile sd, boolean process_sub_directories) {
+    final public long getAllFileSizeInDirectory(SafFile sd, boolean process_sub_directories) {
         long dir_size=0l;
         if (sd.exists()) {
             if (sd.isDirectory()) {
+//                long b_time=System.currentTimeMillis();
                 SafFile[] cfl=sd.listFiles();
+//                mUtil.addDebugMsg(1,"I","list children name="+sd.getName()+", elapsed="+(System.currentTimeMillis()-b_time));
                 if (cfl!=null && cfl.length>0) {
                     for(SafFile cf:cfl) {
                         if (cf.isDirectory()) {
@@ -2788,13 +2830,11 @@ public class FileManager {
         return fi;
     }
 
-    static public FileListItem createNewFilelistItem(String base_url, SafFile tfli, int sdc, int ll, boolean dir, String parent) {
-        FileListItem fi=null;
+    public FileListItem createNewFilelistItem(String base_url, SafFile tfli, int sdc, int ll, boolean dir, String parent) {
         if (dir) {
-            long dir_size=getAllFileSizeInDirectory(tfli, true);
-            fi= new FileListItem(tfli.getName(),
+            final FileListItem fi= new FileListItem(tfli.getName(),
                     true,
-                    dir_size,
+                    -1,
                     tfli.lastModified(),
                     false,
                     true, false,//tfli.canRead(),tfli.canWrite(),
@@ -2802,8 +2842,26 @@ public class FileManager {
                     ll);
             fi.setSubDirItemCount(sdc);
             fi.setBaseUrl(base_url);;
+            Thread th=new Thread(){
+                @Override
+                public void run() {
+//                    mUtil.addDebugMsg(1,"I","calcurate started name=" + tfli.getName());
+                    long dir_size=getAllFileSizeInDirectory(tfli, true);
+                    fi.setLength(dir_size);
+//                    mUtil.addDebugMsg(1,"I","calcurate ended name=" + tfli.getName());
+                    mUiHandler.post(new Runnable(){
+                        @Override
+                        public void run(){
+//                            mUtil.addDebugMsg(1,"I","refresh adapter name=" + tfli.getName());
+                            mGp.localFileListAdapter.notifyDataSetChanged();
+                        }
+                    }) ;
+                }
+            };
+            th.start();
+            return fi;
         } else {
-            fi=new FileListItem(tfli.getName(),
+            FileListItem fi=new FileListItem(tfli.getName(),
                     false,
                     tfli.length(),
                     tfli.lastModified(),
@@ -2812,9 +2870,9 @@ public class FileManager {
                     false, parent,//tfli.isHidden(),tfli.getParent(),
                     ll);
             fi.setBaseUrl(base_url);;
+            return fi;
         }
 
-        return fi;
     }
 
     public FileListItem createNewFilelistItem(String base_url, final File tfli, int sdc, int ll) {

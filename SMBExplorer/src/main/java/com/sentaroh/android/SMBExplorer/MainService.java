@@ -11,6 +11,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
@@ -27,8 +28,9 @@ public class MainService extends Service {
     private CommonUtilities mUtil=null;
 
     private Context mContext=null;
-
+    private WifiManager mWifiMgr = null;
     private SleepReceiver mSleepReceiver=new SleepReceiver();
+    private WifiReceiver mWifiReceiver=new WifiReceiver();
 
     private PowerManager.WakeLock mPartialWakelock=null;
 
@@ -40,6 +42,23 @@ public class MainService extends Service {
         mUtil=new CommonUtilities(getApplicationContext(), "Service", mGp);
 
         mUtil.addDebugMsg(1,"I","onCreate entered");
+
+        mWifiMgr = (WifiManager) mContext.getSystemService(Context.WIFI_SERVICE);
+
+        mGp.wifiIsActive = mWifiMgr.isWifiEnabled();
+        if (mGp.wifiIsActive) {
+            mGp.wifiSsid = mUtil.getConnectedWifiSsid();
+        }
+        mUtil.addDebugMsg(1, "I", "Wi-Fi Status, Active=" + mGp.wifiIsActive + ", SSID=" + mGp.wifiSsid);
+
+        IntentFilter wifi_filter = new IntentFilter();
+        wifi_filter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);
+        wifi_filter.addAction(WifiManager.RSSI_CHANGED_ACTION);
+        wifi_filter.addAction(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION);
+        wifi_filter.addAction(WifiManager.SUPPLICANT_STATE_CHANGED_ACTION);
+        wifi_filter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
+        wifi_filter.addAction(WifiManager.NETWORK_IDS_CHANGED_ACTION);
+        registerReceiver(mWifiReceiver, wifi_filter);
 
         IntentFilter int_filter = new IntentFilter();
         int_filter.addAction(Intent.ACTION_SCREEN_OFF);
@@ -129,6 +148,7 @@ public class MainService extends Service {
         super.onDestroy();
         mUtil.addDebugMsg(1,"I",CommonUtilities.getExecutedMethodName()+" entered");
         unregisterReceiver(mSleepReceiver);
+        unregisterReceiver(mWifiReceiver);
         cancelHeartBeat();
         stopForeground(true);
         LogUtil.flushLog(mContext, mGp);
@@ -255,7 +275,7 @@ public class MainService extends Service {
         nm.notify(R.string.app_name, mNotification);
 
         startForeground(R.string.app_name, mNotification);
-    };
+    }
 
     final private class SleepReceiver  extends BroadcastReceiver {
         @SuppressLint({ "Wakelock", "NewApi"})
@@ -265,6 +285,76 @@ public class MainService extends Service {
             if(action.equals(Intent.ACTION_SCREEN_ON)) {
             } else if(action.equals(Intent.ACTION_SCREEN_OFF)) {
             } else if(action.equals(Intent.ACTION_USER_PRESENT)) {
+            }
+        }
+    }
+
+    private void notifyToWifiStatusChanged() {
+        if (mGp.callbackStub != null) {
+            try {
+                mGp.callbackStub.cbWifiStatusChanged();
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    final private class WifiReceiver  extends BroadcastReceiver {
+        @SuppressLint({ "Wakelock", "NewApi"})
+        @Override
+        final public void onReceive(Context c, Intent in) {
+            String tssid =null;
+            try {
+                tssid=mWifiMgr.getConnectionInfo().getSSID();
+            } catch(Exception e){
+                mUtil.addLogMsg("W", "WIFI receiver, getSSID() failed. msg="+e.getMessage());
+            }
+            String wssid = "";
+            String ss = "";
+            try {
+                ss=mWifiMgr.getConnectionInfo().getSupplicantState().toString();
+            } catch(Exception e){
+                mUtil.addLogMsg("W", "WIFI receiver, getSupplicantState() failed. msg="+e.getMessage());
+            }
+            if (tssid == null || tssid.equals("<unknown ssid>")) wssid = "";
+            else wssid = tssid.replaceAll("\"", "");
+            if (wssid.equals("0x")) wssid = "";
+
+            boolean new_wifi_enabled = mWifiMgr.isWifiEnabled();
+            if (!new_wifi_enabled && mGp.wifiIsActive) {
+                mUtil.addDebugMsg(1, "I", "WIFI receiver, WIFI Off");
+                mGp.wifiSsid = "";
+                mGp.wifiIsActive = false;
+                notifyToWifiStatusChanged();
+            } else {
+                if (ss.equals("COMPLETED") || ss.equals("ASSOCIATING") || ss.equals("ASSOCIATED")) {
+                    if (mGp.wifiSsid.equals("") && !wssid.equals("")) {
+                        mUtil.addDebugMsg(1, "I", "WIFI receiver, Connected WIFI Access point ssid=" + wssid);
+                        mGp.wifiSsid = wssid;
+                        mGp.wifiIsActive = true;
+                        notifyToWifiStatusChanged();
+                    }
+                } else if (ss.equals("INACTIVE") ||
+                        ss.equals("DISCONNECTED") ||
+                        ss.equals("UNINITIALIZED") ||
+                        ss.equals("INTERFACE_DISABLED") ||
+                        ss.equals("SCANNING")) {
+                    if (mGp.wifiIsActive) {
+                        if (!mGp.wifiSsid.equals("")) {
+                            mUtil.addDebugMsg(1, "I", "WIFI receiver, Disconnected WIFI Access point ssid=" + mGp.wifiSsid);
+                            mGp.wifiSsid = "";
+                            mGp.wifiIsActive = true;
+                            notifyToWifiStatusChanged();
+                        }
+                    } else {
+                        if (new_wifi_enabled) {
+                            mUtil.addDebugMsg(1, "I", "WIFI receiver, WIFI On");
+                            mGp.wifiSsid = "";
+                            mGp.wifiIsActive = true;
+                            notifyToWifiStatusChanged();
+                        }
+                    }
+                }
             }
         }
     };
