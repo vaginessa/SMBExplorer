@@ -401,8 +401,8 @@ public class MainActivity extends AppCompatActivity {
         vsa.local_spinner_pos=mGp.localFileListDirSpinner.getSelectedItemPosition();
         vsa.remote_spinner_pos=mGp.remoteFileListDirSpinner.getSelectedItemPosition();
 
-        vsa.local_file_path=mGp.localFileListPath.getText();
-        vsa.remote_file_path=mGp.remoteFileListPath.getText();
+        vsa.local_file_path=mGp.localFileListPath.getText().toString();
+        vsa.remote_file_path=mGp.remoteFileListPath.getText().toString();
 	}
 	
 	private void restoreViewStatus(ViewSaveArea vsa) {
