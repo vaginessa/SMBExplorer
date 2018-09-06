@@ -178,6 +178,8 @@ public class GlobalParameters extends CommonGlobalParms{
     public boolean settingLogOption=false;
     public boolean settingPutLogcatOption=false;
 
+    public boolean settingsVideoPlaybackKeepAspectRatio=true;//Vide player
+
     public ISvcCallback callbackStub=null;
 
     public boolean activityIsBackground=false;
