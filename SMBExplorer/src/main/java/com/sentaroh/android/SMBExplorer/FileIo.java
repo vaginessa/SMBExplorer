@@ -793,14 +793,14 @@ public class FileIo extends Thread {
                     SafFile[] children = from_saf.listFiles();
                     for (SafFile element : children) {
                         if (!fileioThreadCtrl.isEnabled()) return false;
-                        if (!copyLocalToRemote(smb_auth, fromUrl+"/"+element, toUrl+element+"/" ))
+                        if (!copyLocalToRemote(smb_auth, fromUrl+"/"+element, toUrl+"/"+element+"/" ))
                             return false;
                     }
                 } else {
                     String[] children = ilf.list();
                     for (String element : children) {
                         if (!fileioThreadCtrl.isEnabled()) return false;
-                        if (!copyLocalToRemote(smb_auth, fromUrl+"/"+element, toUrl+element+"/" ))
+                        if (!copyLocalToRemote(smb_auth, fromUrl+"/"+element, toUrl+"/"+element+"/" ))
                             return false;
                     }
                 }
@@ -1259,7 +1259,7 @@ public class FileIo extends Thread {
 
         result=copyFile(ifa.is, bos, tmp_file, ifa.fileBytes, title_header, ifa.fileName, fromUrl, toUrl);
         if (result) {
-            tmp_file.setLastModified(ifa.lastMod);
+            boolean slm=tmp_file.setLastModified(ifa.lastMod);
             SafFile dest_saf = mGp.safMgr.createSdcardItem(toUrl, false);
             result=temp_saf.moveTo(dest_saf);
             if (result) {
@@ -1411,6 +1411,7 @@ public class FileIo extends Thread {
 
         result=copyFile(bis, bos, t_df, mf.length(), title_header, mf.getName(), fromUrl, toUrl);
         if (result) {
+            tmp_file.setLastModified(mf.getLastModified());
             SafFile oLf = mGp.safMgr.createSdcardItem(toUrl, false);
             if (oLf.exists()) oLf.delete();
 

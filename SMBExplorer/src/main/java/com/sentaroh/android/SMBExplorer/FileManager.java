@@ -13,6 +13,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.RemoteException;
 import android.provider.MediaStore;
+import android.support.v4.content.FileProvider;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.View;
@@ -1251,21 +1252,31 @@ public class FileManager {
             ccMenu.addMenuItem("Share("+item.getName()+")",R.drawable.context_button_share_dark).setOnClickListener(new CustomContextMenuItem.CustomContextMenuOnClickListener() {
                 @Override
                 public void onClick(CharSequence menuTitle) {
+                    String fid="", mt=null;
+                    if (item.getName().lastIndexOf(".") > 0) {
+                        fid = item.getName().substring(item.getName().lastIndexOf(".") + 1, item.getName().length());
+                        fid=fid.toLowerCase();
+                    }
+                    mt= MimeTypeMap.getSingleton().getMimeTypeFromExtension(fid);
+
                     Intent intent = new Intent(android.content.Intent.ACTION_SEND);
                     File lf=new File(item.getPath()+"/"+item.getName());
                     Uri uri =null;
-//                    if (Build.VERSION.SDK_INT>=26)  uri= FileProvider.getUriForFile(mContext, BuildConfig.APPLICATION_ID + ".provider", lf);
-//                    else uri=Uri.parse("file://"+lf.getPath());
-                    uri=Uri.parse("file://"+lf.getPath());
+                    if (Build.VERSION.SDK_INT>=26)  uri= FileProvider.getUriForFile(mContext, BuildConfig.APPLICATION_ID + ".provider", lf);
+                    else uri=Uri.parse("file://"+lf.getPath());
+//                    uri=Uri.parse("file://"+lf.getPath());
                     intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     intent.putExtra(Intent.EXTRA_STREAM, uri);
-                    intent.setType("image/*");
+                    if (mt!=null) intent.setType(mt);
+                    else intent.setType("*/*");
+
                     try {
                         mContext.startActivity(intent);
                     } catch(Exception e) {
-                        mGp.commonDlg.showCommonDialog(false, "E", "startActivity() failed at shareItem() for songle item. message="+e.getMessage(), "", null);
+                        mGp.commonDlg.showCommonDialog(false, "E", "Share error", "startActivity() failed at shareItem() for send item. message="+e.getMessage(), null);
                     }
+
                 }
             });
         }

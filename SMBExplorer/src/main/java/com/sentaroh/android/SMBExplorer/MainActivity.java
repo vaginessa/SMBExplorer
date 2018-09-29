@@ -34,6 +34,7 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.graphics.Color;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
 import android.os.Build;
@@ -130,6 +131,8 @@ public class MainActivity extends AppCompatActivity {
 		mActivity=this;
         mGp=GlobalWorkArea.getGlobalParameters(mContext);
 
+//        getWindow().setNavigationBarColor(Color.BLACK);
+
         mUtil=mGp.mUtil=new CommonUtilities(mContext, "Main", mGp);
 		setContentView(R.layout.main);
         mUiHandler=new Handler();
@@ -152,6 +155,9 @@ public class MainActivity extends AppCompatActivity {
         restartStatus=0;
 
         checkRequiredPermissions();
+
+        Intent intmsg = new Intent(mContext, MainService.class);
+        startService(intmsg);
 
         mUsbReceiver=new UsbReceiver();
         IntentFilter int_filter = new IntentFilter();
@@ -202,7 +208,6 @@ public class MainActivity extends AppCompatActivity {
                 public void positiveResponse(Context context, Object[] objects) {
                     setCallbackListener();
                     if (restartStatus==0) {
-//                switchTab(SMBEXPLORER_TAB_LOCAL);
                         mGp.smbConfigList = SmbServerUtil.createSmbServerConfigList(mGp,false,"");
                         mFileMgr.setMainListener();
                         refreshOptionMenu();
@@ -476,6 +481,9 @@ public class MainActivity extends AppCompatActivity {
         mGp.tabWidget = (TabWidget) findViewById(android.R.id.tabs);
         mGp.tabWidget.setStripEnabled(false);
         mGp.tabWidget.setShowDividers(LinearLayout.SHOW_DIVIDER_NONE);
+
+        LinearLayout main_view=(LinearLayout)findViewById(R.id.main_screen_view);
+        main_view.setBackgroundColor(Color.BLACK);//mGp.themeColorList.window_background_color_content);
 
         CustomTabContentView tabLocal = new CustomTabContentView(this, SMBEXPLORER_TAB_LOCAL);
         mGp.tabHost.addTab(mGp.tabHost.newTabSpec(SMBEXPLORER_TAB_LOCAL).setIndicator(tabLocal).setContent(android.R.id.tabcontent));

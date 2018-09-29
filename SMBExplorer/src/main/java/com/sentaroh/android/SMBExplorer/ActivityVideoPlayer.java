@@ -18,12 +18,14 @@ import android.media.MediaPlayer.OnVideoSizeChangedListener;
 import android.media.MediaScannerConnection;
 import android.media.MediaScannerConnection.OnScanCompletedListener;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.SystemClock;
 import android.provider.MediaStore;
 import android.support.v4.app.FragmentActivity;
+import android.support.v4.content.FileProvider;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -323,8 +325,20 @@ public class ActivityVideoPlayer extends FragmentActivity {
 	};
 
 	private boolean isVideFile(String fn) {
-        if (fn.endsWith(".mp4") || fn.endsWith(".avi")) return true;
+	    String mt=getMimeTypeFromFileExtention(fn);
+	    if (mt==null) return false;
+	    else if (mt.startsWith("video/")) return true;
         return false;
+    }
+
+    private String getMimeTypeFromFileExtention(String fn) {
+        String fid="", mt=null;
+        if (fn.lastIndexOf(".") > 0) {
+            fid = fn.substring(fn.lastIndexOf(".") + 1, fn.length());
+            fid=fid.toLowerCase();
+        }
+        mt= MimeTypeMap.getSingleton().getMimeTypeFromExtension(fid);
+        return mt;
     }
 
 	public void setMainViewListener() {
@@ -381,7 +395,7 @@ public class ActivityVideoPlayer extends FragmentActivity {
 						mFileList.remove(mCurrentSelectedPos);
 						File lf=new File(mVideoFolder+fli.getName());
 						lf.delete();
-                        scanMediaStore(mVideoFolder+fli.getName());
+                        scanMediaFile(mVideoFolder+fli.getName());
 //						Log.v("","size="+mFileList.size()+", pos="+mCurrentSelectedPos);
 						if (mFileList.size()>0) {
 							if ((mCurrentSelectedPos+1)>mFileList.size()) mCurrentSelectedPos--;
@@ -416,11 +430,14 @@ public class ActivityVideoPlayer extends FragmentActivity {
 			public void onClick(View v) {
                 Intent intent = new Intent(android.content.Intent.ACTION_SEND);
                 File lf=new File(mVideoFolder+mFileList.get(mCurrentSelectedPos).getName());
-                Uri uri =null;
-                uri=Uri.parse("file://"+lf.getPath());
                 intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                Uri uri=null;
+                if (Build.VERSION.SDK_INT>=26)  uri= FileProvider.getUriForFile(mContext, BuildConfig.APPLICATION_ID + ".provider", lf);
+                else Uri.fromFile(lf);
+
                 intent.putExtra(Intent.EXTRA_STREAM, uri);
+//                intent.setType("image/*");
                 intent.setType("video/mp4");
                 try {
                     mContext.startActivity(intent);
@@ -802,7 +819,7 @@ public class ActivityVideoPlayer extends FragmentActivity {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		scanMediaStoreFile(dir+fn);
+		scanMediaFile(dir+fn);
 	};
 	
 	private Bitmap mThumnailBitmap=null;
@@ -1104,7 +1121,7 @@ public class ActivityVideoPlayer extends FragmentActivity {
 		}
 	};
 
-    private void scanMediaStoreFile(String fp) {
+    private void scanMediaFile(String fp) {
     	String[] paths = new String[] {fp};
     	MediaScannerConnection.scanFile(getApplicationContext(), paths, null, mOnScanCompletedListener);
     };
@@ -1130,10 +1147,6 @@ public class ActivityVideoPlayer extends FragmentActivity {
 	};
 	private boolean isVideoPlayerStatusPausing() {
 		return mVideoPlayerStatus == VIDEO_STATUS_PAUSING;
-	};
-
-	private void scanMediaStore(String fp) {
-	    MediaScannerConnection.scanFile(mContext, new String[]{fp}, null, null);
 	};
 
 	@SuppressLint("DefaultLocale")
